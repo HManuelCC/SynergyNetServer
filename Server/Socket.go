@@ -12,7 +12,7 @@ import (
 	"github.com/HManuelCC/SynergyNetServer/Server/handler_connections"
 )
 
-var clients *client_socket.ClientSlice = &client_socket.ClientSlice{}
+var Clients *client_socket.ClientSlice = &client_socket.ClientSlice{}
 
 func NewSocketServer(port int) {
 
@@ -47,10 +47,10 @@ func NewSocketServer(port int) {
 				conn.Close()
 			} else {
 				client := &client_socket.ClientSocket{NameClient: clientName, Port: port, Conn: conn, Host: addr, Events: make(chan request_response.Event), States: make(chan request_response.State)}
-				*clients = append(*clients, client)
+				*Clients = append(*Clients, client)
 
 				log.Println("Nueva conexión establecida: " + client.NameClient)
-				go handler_connections.HandleConnection(client, clients)
+				go handler_connections.HandleConnection(client, Clients)
 			}
 
 		}
