@@ -1,24 +1,32 @@
-package soketserver
+package SynergyNetServer
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
-	"net"
 	"strconv"
 	"strings"
 
-	client_socket "github.com/HManuelCC/SynergyNetServer/Server/Data/client_connections"
-	"github.com/HManuelCC/SynergyNetServer/Server/Data/request_response"
+	"github.com/HManuelCC/SynergyNetServer/Server/Data/interfaces/client"
+	"github.com/HManuelCC/SynergyNetServer/Server/Data/interfaces/comunication"
 	"github.com/HManuelCC/SynergyNetServer/Server/handler_connections"
 )
 
-var Clients *client_socket.ClientSlice = &client_socket.ClientSlice{}
+var Clients *client.ClientSliceGroups = &client.ClientSliceGroups{}
 
 func NewSocketServer(port int) {
 
 	var conexionesActuales int = 0
 
-	server, err := net.Listen("tcp", ":"+strconv.Itoa(port))
+	cert, err := tls.LoadX509KeyPair("../Certs/server.crt", "../Certs/private_server.key")
+	if err != nil {
+		log.Fatal("Error cargando certificado:", err)
+	}
+
+	// Configuración TLS
+	config := &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13}
+
+	server, err := tls.Listen("tcp", ":"+strconv.Itoa(port), config)
 	if err != nil {
 		log.Println("Error al crear el servidor: ", err)
 		return
@@ -40,16 +48,16 @@ func NewSocketServer(port int) {
 			var addr string = conn.RemoteAddr().String()
 			var port string = ""
 			port = strings.Split(conn.RemoteAddr().String(), ":")[1]
-			fmt.Println("Obteniendo nombre del cliente")
-			clientName, err := client_socket.GetCLientName(conn)
-			if err != nil {
-				log.Println("Error al obtener el nombre del cliente: ", err)
+			fmt.Println("Obteniendo información del cliente")
+			clientInfo, err := client.ConnectAndGetInfo(conn)
+			if err != nil || clientInfo == nil {
+				log.Println("Error al obtener la información del cliente: ", err)
 				conn.Close()
 			} else {
-				client := &client_socket.ClientSocket{NameClient: clientName, Port: port, Conn: conn, Host: addr, Events: make(chan request_response.Event), States: make(chan request_response.State)}
-				*Clients = append(*Clients, client)
-
-				log.Println("Nueva conexión establecida: " + client.NameClient)
+				clientInfo.ClientName = strings.ToUpper(clientInfo.ClientName)
+				client := &client.ClientSocket{Info: *clientInfo, Port: port, Conn: conn, Host: addr, Events: make(chan comunication.Event), States: make(chan comunication.State)}
+				Clients.AddClientToGroup(client)
+				log.Println("Nueva conexión establecida: " + client.Info.ClientName)
 				go handler_connections.HandleConnection(client, Clients)
 			}
 
