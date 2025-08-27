@@ -107,10 +107,13 @@ func (c *ClientSliceGroups) RemoveClient(host string) {
 	if len((*c)[indexGroup].clients) == 0 {
 		*c = append((*c)[:indexGroup], (*c)[indexGroup+1:]...)
 	}
-	c.Print()
+	//c.Print()
 }
 
 func (c *ClientSliceGroups) Print() error {
+	if c == nil {
+		return fmt.Errorf("client slice groups is nil")
+	}
 	for i := range *c {
 		fmt.Printf("Grupo: %s\n", (*c)[i].group)
 		for j := range (*c)[i].clients {
@@ -182,7 +185,7 @@ func Emit(object interface{}, client *ClientSocket) error {
 		return err
 	}
 
-	fmt.Println("Mensaje enviado:", object)
+	//fmt.Println("Mensaje enviado:", object)
 	return nil
 }
 
@@ -217,12 +220,12 @@ func (client *ClientSocket) ReadData(connected chan bool) {
 			break
 		}
 
-		fmt.Println("Reading data from dispatcher")
+		//fmt.Println("Reading data from dispatcher")
 
 		switch tipo {
 		case 1: // Evento
 			var event comunication.Event
-			fmt.Println("Evento recibido:", string(message))
+			//fmt.Println("Evento recibido:", string(message))
 			if err := json.Unmarshal(message, &event); err != nil {
 				log.Println("Error al obtener los datos:", err)
 			} else {
@@ -232,7 +235,7 @@ func (client *ClientSocket) ReadData(connected chan bool) {
 
 		case 2: // Estado
 			var state comunication.State
-			fmt.Println("Estado recibido:", string(message))
+			//fmt.Println("Estado recibido:", string(message))
 			if err := json.Unmarshal(message, &state); err != nil {
 				log.Println("Error al obtener los datos:", err)
 			} else {

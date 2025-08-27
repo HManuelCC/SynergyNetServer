@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/HManuelCC/SynergyNetServer/Server/Data/interfaces/balancer"
 	"github.com/HManuelCC/SynergyNetServer/Server/Data/interfaces/client"
 	"github.com/HManuelCC/SynergyNetServer/Server/Data/interfaces/comunication"
 	"github.com/HManuelCC/SynergyNetServer/Server/handler_connections"
@@ -15,6 +16,8 @@ import (
 var Clients *client.ClientSliceGroups = &client.ClientSliceGroups{}
 
 func NewSocketServer(port int) {
+
+	balancer.BalancerQueue.Start()
 
 	var conexionesActuales int = 0
 

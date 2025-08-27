@@ -2,7 +2,6 @@ package handler_connections
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -44,20 +43,19 @@ func HandleConnectionDispatcher(client *client.ClientSocket, clients *client.Cli
 		case comunication.State:
 			go HandleStateDispatcher(res, client, clients)
 		default:
-			fmt.Println("Tipo de dato no reconocido:", res)
+			//fmt.Println("Tipo de dato no reconocido:", res)
 		}
 	})
 }
 func HandleEventDispatcher(result comunication.Event, ClientSocket *client.ClientSocket, clients *client.ClientSliceGroups) {
 
-	if result.Destination == "127.0.0.1" {
+	if result.Destination == "127.0.0.1-E" || result.Destination == "127.0.0.1-S" {
 		// Manejar el estado para el cliente local
-		fmt.Println("Evento recibido:", result.Event, "de", result.Origen)
+		//fmt.Println("Evento recibido:", result.Event, "de", result.Origen)
 	} else {
 		clientDestination, err := clients.SearchClientByNameGetClient(strings.ToUpper(result.Destination))
 
 		if err != nil {
-			log.Println("Error al buscar el cliente destino:", err)
 			var state comunication.State = comunication.State{Status: false, Message: "Error: Cliente no encontrado", Error: "Client not found", Data: nil}
 			client.Emit(state, ClientSocket)
 			return
@@ -70,15 +68,27 @@ func HandleEventDispatcher(result comunication.Event, ClientSocket *client.Clien
 }
 
 func HandleStateDispatcher(result comunication.State, clientSocket *client.ClientSocket, clients *client.ClientSliceGroups) {
-	if result.Destination == "127.0.0.1" {
+	switch result.Destination {
+	case "127.0.0.1-S":
 
-		fmt.Println("Estado recibido:", result.Message, "de", result.Origen)
+		if result.Status {
+			balancer.BalancerQueue.RemoveTaskByPID(result.SERVERPID)
+		}
 
-	} else {
+	case "127.0.0.1-E":
+		//println("Estado recibido:", result.Message, "de", result.Origen, "a", result.Destination)
+	default:
+		currentProcess := balancer.BalancerQueue.GetTaskByPID(result.SERVERPID)
+		var pidc int = 0
+		if currentProcess != nil {
+			// Si el proceso existe, actualizarlo
+			currentProcess.Updated = time.Now()
+			pidc = currentProcess.PIDC
+		}
+		result.LOCALPID = pidc
 		clientDestination, err := clients.SearchClientByNameGetClient(strings.ToUpper(result.Destination))
-		println("Estado recibido:", result.Message, "de", result.Origen, "a", result.Destination)
+
 		if err != nil {
-			log.Println("Error al buscar el cliente destino:", err)
 			var state comunication.State = comunication.State{Status: false, Message: "Error: Cliente no encontrado", Error: "Client not found", Data: nil}
 			client.Emit(state, clientSocket)
 			return
@@ -86,4 +96,7 @@ func HandleStateDispatcher(result comunication.State, clientSocket *client.Clien
 
 		client.Emit(result, clientDestination)
 	}
+
+	balancer.BalancerQueue.Print()
+
 }

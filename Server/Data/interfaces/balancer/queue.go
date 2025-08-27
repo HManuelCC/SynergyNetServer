@@ -1,6 +1,7 @@
 package balancer
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -50,6 +51,20 @@ func (q *Queue) GetTaskByPID(pid int) *providers.Process {
 	return nil
 }
 
+func (q *Queue) GetTaskByIndex(index int) *providers.Process {
+	if index < 0 || index >= len(q.Tasks) {
+		return nil
+	}
+	return q.Tasks[index]
+}
+
+func (q *Queue) Print() {
+	fmt.Println("Estado actual de la cola de balanceo:")
+	for i, task := range q.Tasks {
+		fmt.Printf("Task %d: %+v\n", i, task)
+	}
+	fmt.Println("---------------------------------------------------")
+}
 func (q *Queue) Start() {
 	go func() {
 
@@ -65,7 +80,8 @@ func (q *Queue) Start() {
 				err = client.Emit(dataEvent, proc.ClientSocket)
 			case comunication.State:
 				var dataState comunication.State = proc.DataSend.(comunication.State)
-				dataState.PID = proc.PIDC
+				dataState.LOCALPID = proc.PIDC
+				dataState.SERVERPID = proc.PID
 				err = client.Emit(dataState, proc.ClientSocket)
 			default:
 				log.Println("Tipo de evento no soportado:", proc.DataSend)

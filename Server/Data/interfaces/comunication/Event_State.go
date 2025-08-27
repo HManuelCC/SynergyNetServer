@@ -14,6 +14,7 @@ type State struct {
 	Error       string      `json:"error"`
 	Destination string      `json:"destination"`
 	Origen      string      `json:"origen"`
-	PID         int         `json:"pid"`
+	LOCALPID    int         `json:"local_pid"`
+	SERVERPID   int         `json:"server_pid"`
 	Data        interface{} `json:"data"`
 }
