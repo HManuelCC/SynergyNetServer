@@ -49,21 +49,16 @@ func HandleConnectionDispatcher(client *client.ClientSocket, clients *client.Cli
 }
 func HandleEventDispatcher(result comunication.Event, ClientSocket *client.ClientSocket, clients *client.ClientSliceGroups) {
 
-	if result.Destination == "127.0.0.1-E" || result.Destination == "127.0.0.1-S" {
-		// Manejar el estado para el cliente local
-		//fmt.Println("Evento recibido:", result.Event, "de", result.Origen)
-	} else {
-		clientDestination, err := clients.SearchClientByNameGetClient(strings.ToUpper(result.Destination))
+	clientDestination, err := clients.SearchClientByNameGetClient(strings.ToUpper(result.Destination), 0)
+	var process providers.ProcessEvent = providers.ProcessEvent{PIDC: result.PID, TTL: 60, Attempts: 3, Created: time.Now(), Updated: time.Now(), DataSend: result, ClientSocket: clientDestination, ClientPos: 0}
 
-		if err != nil {
-			var state comunication.State = comunication.State{Status: false, Message: "Error: Cliente no encontrado", Error: "Client not found", Data: nil}
-			client.Emit(state, ClientSocket)
-			return
-		}
-
-		var process providers.Process = providers.Process{PIDC: result.PID, TTL: 60, Attempts: 3, Created: time.Now(), Updated: time.Now(), DataSend: result, ClientSocket: clientDestination}
-		balancer.BalancerQueue.AddTask(&process)
+	if err != nil {
+		var state comunication.State = comunication.State{Status: false, Message: "Error: Cliente no encontrado", Error: "Client not found", Data: nil}
+		client.Emit(state, ClientSocket)
+		return
 	}
+
+	balancer.BalancerEventQueue.AddTask(&process)
 
 }
 
@@ -71,32 +66,69 @@ func HandleStateDispatcher(result comunication.State, clientSocket *client.Clien
 	switch result.Destination {
 	case "127.0.0.1-S":
 
-		if result.Status {
-			balancer.BalancerQueue.RemoveTaskByPID(result.SERVERPID)
+		var errorProc bool = false
+
+		currentProcess := balancer.BalancerStatesQueue.GetTaskByPID(result.SERVERPID)
+
+		if currentProcess == nil {
+			currentProcess = balancer.BalancerErrorStatesQueue.GetTaskByPID(result.SERVERPID)
+			errorProc = true
+		}
+
+		if currentProcess != nil {
+
+			if !result.Status {
+
+				balancer.BalancerErrorStatesQueue.AddTask(currentProcess)
+			}
+
+			if errorProc {
+				balancer.BalancerErrorStatesQueue.RemoveTaskByPID(result.SERVERPID)
+			} else {
+				balancer.BalancerStatesQueue.RemoveTaskByPID(result.SERVERPID)
+			}
 		}
 
 	case "127.0.0.1-E":
-		//println("Estado recibido:", result.Message, "de", result.Origen, "a", result.Destination)
+
+		var errorProc bool = false
+
+		currentProcess := balancer.BalancerEventQueue.GetTaskByPID(result.SERVERPID)
+
+		if currentProcess == nil {
+			currentProcess = balancer.BalancerErrorEventQueue.GetTaskByPID(result.SERVERPID)
+			errorProc = true
+		}
+
+		if currentProcess != nil {
+			if !result.Status {
+				balancer.BalancerErrorEventQueue.AddTask(currentProcess)
+			}
+
+			if errorProc {
+				balancer.BalancerErrorEventQueue.RemoveTaskByPID(result.SERVERPID)
+			} else {
+				balancer.BalancerEventQueue.RemoveTaskByPID(result.SERVERPID)
+			}
+		}
+
 	default:
-		currentProcess := balancer.BalancerQueue.GetTaskByPID(result.SERVERPID)
+		currentProcess := balancer.BalancerEventQueue.GetTaskByPID(result.SERVERPID)
 		var pidc int = 0
 		if currentProcess != nil {
-			// Si el proceso existe, actualizarlo
-			currentProcess.Updated = time.Now()
 			pidc = currentProcess.PIDC
 		}
-		result.LOCALPID = pidc
-		clientDestination, err := clients.SearchClientByNameGetClient(strings.ToUpper(result.Destination))
 
+		result.LOCALPID = pidc
+		clientDestination, err := clients.SearchClientByNameGetClient(strings.ToUpper(result.Destination), 0)
+		var process providers.ProcessState = providers.ProcessState{PIDC: pidc, PID: result.SERVERPID, TTL: 60, Attempts: 3, Created: time.Now(), Updated: time.Now(), DataSend: result, ClientSocket: clientDestination, ClientPos: 0}
 		if err != nil {
 			var state comunication.State = comunication.State{Status: false, Message: "Error: Cliente no encontrado", Error: "Client not found", Data: nil}
 			client.Emit(state, clientSocket)
 			return
 		}
 
-		client.Emit(result, clientDestination)
+		balancer.BalancerStatesQueue.AddTask(&process)
 	}
-
-	balancer.BalancerQueue.Print()
 
 }

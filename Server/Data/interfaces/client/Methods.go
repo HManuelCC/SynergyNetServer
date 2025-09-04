@@ -71,13 +71,16 @@ func (c *ClientSliceGroups) SendDataToClientByHost(host string, event comunicati
 	return nil
 }
 
-func (c *ClientSliceGroups) SearchClientByNameGetClient(clientName string) (*ClientSocket, error) {
+func (c *ClientSliceGroups) SearchClientByNameGetClient(clientName string, pos int) (*ClientSocket, error) {
 	for i := range *c {
 
 		if (*c)[i].group == strings.ToUpper(clientName) {
 
 			if len((*c)[i].clients) > 0 {
-				return (*c)[i].clients[0], nil
+				if pos >= len((*c)[i].clients) {
+					return nil, fmt.Errorf("position out of range")
+				}
+				return (*c)[i].clients[pos], nil
 			} else {
 				return nil, fmt.Errorf("no clients in group")
 			}
@@ -103,11 +106,12 @@ func (c *ClientSliceGroups) RemoveClient(host string) {
 	if indexGroup == -1 || indexClient == -1 {
 		return
 	}
+
 	(*c)[indexGroup].clients = append((*c)[indexGroup].clients[:indexClient], (*c)[indexGroup].clients[indexClient+1:]...)
 	if len((*c)[indexGroup].clients) == 0 {
 		*c = append((*c)[:indexGroup], (*c)[indexGroup+1:]...)
 	}
-	//c.Print()
+	//c.Print
 }
 
 func (c *ClientSliceGroups) Print() error {
@@ -157,6 +161,7 @@ func Emit(object interface{}, client *ClientSocket) error {
 		typeByte = 1
 	case comunication.State:
 		typeByte = 2
+
 	default:
 		log.Println("Tipo de evento no soportado:", object)
 		return fmt.Errorf("tipo de evento no soportado: %T", object)

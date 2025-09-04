@@ -17,8 +17,6 @@ var Clients *client.ClientSliceGroups = &client.ClientSliceGroups{}
 
 func NewSocketServer(port int) {
 
-	balancer.BalancerQueue.Start()
-
 	var conexionesActuales int = 0
 
 	cert, err := tls.LoadX509KeyPair("../Certs/server.crt", "../Certs/private_server.key")
@@ -34,8 +32,17 @@ func NewSocketServer(port int) {
 		log.Println("Error al crear el servidor: ", err)
 		return
 	}
-
-	defer server.Close()
+	// Iniciar las colas y lanzamos 5 goroutines para cada una
+	balancer.BalancerEventQueue.Start(Clients, 1000, 5)
+	balancer.BalancerStatesQueue.Start(Clients, 1000, 5)
+	balancer.BalancerErrorEventQueue.Start(Clients, 1000, 5)
+	balancer.BalancerErrorStatesQueue.Start(Clients, 100, 5)
+	// Detener las colas
+	defer balancer.BalancerEventQueue.Stop()
+	defer balancer.BalancerStatesQueue.Stop()
+	// Detener la cola de errores
+	defer balancer.BalancerErrorEventQueue.Stop()
+	defer balancer.BalancerErrorStatesQueue.Stop()
 
 	log.Println("Servidor corriendo en el puerto: ", port)
 
