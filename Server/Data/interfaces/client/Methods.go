@@ -12,6 +12,16 @@ import (
 	"github.com/HManuelCC/SynergyNetServer/Server/Data/interfaces/comunication"
 )
 
+var ClientErrors = struct {
+	ErrClientNotFound   error
+	ErrNoClientsInGroup error
+	ErrClientOutOfRange error
+}{
+	ErrClientNotFound:   fmt.Errorf("client not found"),
+	ErrNoClientsInGroup: fmt.Errorf("no clients in group"),
+	ErrClientOutOfRange: fmt.Errorf("client out of range"),
+}
+
 type CallbackFunc func(result interface{})
 
 func (c *ClientSocket) Connect() {
@@ -24,19 +34,28 @@ func (c *ClientSocket) On(callback CallbackFunc) {
 	for {
 		select {
 		case val, ok := <-c.Events:
+			//fmt.Println("On Event received:", val, " ok:", ok)
 			if !ok {
 				c.Events = nil // evitar ciclo infinito al cerrarse
 			} else {
 				callback(val)
 			}
 		case val, ok := <-c.States:
+			//fmt.Println("On State received:", val, " ok:", ok)
 			if !ok {
 				c.States = nil
 			} else {
 				callback(val)
 			}
+		case val, ok := <-c.MessageStates:
+			//fmt.Println("On MessageState received:", val, " ok:", ok)
+			if !ok {
+				c.MessageStates = nil
+			} else {
+				callback(val)
+			}
 		}
-		if c.Events == nil && c.States == nil {
+		if c.Events == nil && c.States == nil && c.MessageStates == nil {
 			return
 		}
 	}
@@ -49,12 +68,12 @@ func (c *ClientSliceGroups) SearchClientByName(clientName string) (int, error) {
 			if len((*c)[i].clients) > 0 {
 				return i, nil
 			} else {
-				return 0, fmt.Errorf("no clients in group")
+				return 0, ClientErrors.ErrNoClientsInGroup
 			}
 
 		}
 	}
-	return 0, fmt.Errorf("client not found")
+	return 0, ClientErrors.ErrClientNotFound
 }
 
 func (c *ClientSliceGroups) SendDataToClientByClientName(clientName string, event comunication.Event) {
@@ -77,17 +96,17 @@ func (c *ClientSliceGroups) SearchClientByNameGetClient(clientName string, pos i
 		if (*c)[i].group == strings.ToUpper(clientName) {
 
 			if len((*c)[i].clients) > 0 {
-				if pos >= len((*c)[i].clients) {
-					return nil, fmt.Errorf("position out of range")
+				if (pos + 1) > len((*c)[i].clients) {
+					return nil, ClientErrors.ErrClientOutOfRange
 				}
 				return (*c)[i].clients[pos], nil
 			} else {
-				return nil, fmt.Errorf("no clients in group")
+				return nil, ClientErrors.ErrNoClientsInGroup
 			}
 
 		}
 	}
-	return nil, fmt.Errorf("client not found")
+	return nil, ClientErrors.ErrClientNotFound
 }
 
 func (c *ClientSliceGroups) SearchClientByHost(host string) (int, int, error) {
@@ -154,16 +173,24 @@ func SortClientsByLatency(c []*ClientSocket) []*ClientSocket {
 	return sortedClients
 }
 
-func Emit(object interface{}, client *ClientSocket) error {
+func Emit(object interface{}, client *ClientSocket, pid int) error {
+
 	var typeByte byte
+
 	switch object.(type) {
+
 	case comunication.Event:
+
 		typeByte = 1
+
 	case comunication.State:
+
 		typeByte = 2
 
 	default:
+
 		log.Println("Tipo de evento no soportado:", object)
+
 		return fmt.Errorf("tipo de evento no soportado: %T", object)
 	}
 
@@ -174,13 +201,18 @@ func Emit(object interface{}, client *ClientSocket) error {
 		return err
 	}
 
+	// PID del proceso
+	pidSend := make([]byte, 4)
+	binary.BigEndian.PutUint32(pidSend, uint32(pid))
+
 	// Tamaño del JSON
 	messageSize := uint32(len(data))
 	sizeBuffer := make([]byte, 4)
 	binary.BigEndian.PutUint32(sizeBuffer, messageSize)
 
-	// Construir paquete: [1 byte tipo] + [4 bytes tamaño] + [datos JSON]
-	packet := append([]byte{typeByte}, sizeBuffer...)
+	// Construir paquete: [1 byte tipo] + [4 bytes PID] + [4 bytes tamaño] + [datos JSON]
+	packet := append([]byte{typeByte}, pidSend...)
+	packet = append(packet, sizeBuffer...)
 	packet = append(packet, data...)
 
 	// Un solo Write
@@ -196,6 +228,7 @@ func Emit(object interface{}, client *ClientSocket) error {
 
 func (client *ClientSocket) ReadData(connected chan bool) {
 	for {
+
 		// Leer encabezado (1 byte tipo + 4 bytes tamaño)
 		header := make([]byte, 5)
 		_, err := io.ReadFull(client.Conn, header)
@@ -225,12 +258,9 @@ func (client *ClientSocket) ReadData(connected chan bool) {
 			break
 		}
 
-		//fmt.Println("Reading data from dispatcher")
-
 		switch tipo {
 		case 1: // Evento
 			var event comunication.Event
-			//fmt.Println("Evento recibido:", string(message))
 			if err := json.Unmarshal(message, &event); err != nil {
 				log.Println("Error al obtener los datos:", err)
 			} else {
@@ -245,6 +275,15 @@ func (client *ClientSocket) ReadData(connected chan bool) {
 				log.Println("Error al obtener los datos:", err)
 			} else {
 				client.States <- state
+			}
+		case 3: // MessageState
+			var msgState comunication.MessageState
+			//fmt.Println("MessageState recibido:", string(message))
+			if err := json.Unmarshal(message, &msgState); err != nil {
+				log.Println("Error al obtener los datos:", err)
+			} else {
+				//fmt.Println("Sending MessageState to channel:", msgState)
+				client.MessageStates <- msgState
 			}
 
 		default:
@@ -268,11 +307,16 @@ func ConnectAndGetInfo(conn net.Conn) (*ClientInformation, error) {
 
 	// Encabezado: tipo (1 byte = 1 para Event), tamaño (4 bytes)
 	typeByte := byte(1) // Event
+	pidSend := make([]byte, 4)
+
+	binary.BigEndian.PutUint32(pidSend, uint32(0))
 	sizeBuffer := make([]byte, 4)
+
 	binary.BigEndian.PutUint32(sizeBuffer, uint32(len(data)))
 
-	// Armar paquete: [tipo][tamaño][payload]
-	packet := append([]byte{typeByte}, sizeBuffer...)
+	// Armar paquete: [tipo][PID][tamaño][payload]
+	packet := append([]byte{typeByte}, pidSend...)
+	packet = append(packet, sizeBuffer...)
 	packet = append(packet, data...)
 
 	// 2️⃣ Enviar con un solo Write
@@ -292,7 +336,7 @@ func ConnectAndGetInfo(conn net.Conn) (*ClientInformation, error) {
 	}
 
 	respType := header[0]
-	if respType != 2 { // Esperamos State
+	if respType != 3 { // Esperamos MessageState
 		return nil, fmt.Errorf("tipo de respuesta inesperado: %d", respType)
 	}
 
@@ -304,17 +348,48 @@ func ConnectAndGetInfo(conn net.Conn) (*ClientInformation, error) {
 		return nil, err
 	}
 
-	fmt.Println("Mensaje recibido:", string(message))
+	//fmt.Println("Mensaje recibido:", string(message))
 
-	var state comunication.State
-	if err := json.Unmarshal(message, &state); err != nil {
-		log.Println("Error al deserializar State:", err)
+	var messageState comunication.MessageState
+	if err := json.Unmarshal(message, &messageState); err != nil {
+		log.Println("Error al deserializar MessageState:", err)
 		return nil, err
 	}
 
-	if !state.Status {
-		log.Println("Error al procesar la solicitud:", state.Error)
-		return nil, fmt.Errorf("error al procesar la solicitud: %s", state.Error)
+	if !messageState.Status {
+		log.Println("Error al procesar la solicitud:", messageState.Error)
+		return nil, fmt.Errorf("error al procesar la solicitud: %s", messageState.Error)
+	}
+
+	header = make([]byte, 5)
+	if _, err := io.ReadFull(conn, header); err != nil {
+		log.Println("Error al leer encabezado:", err)
+		return nil, err
+	}
+
+	respType = header[0]
+	if respType != 3 { // Esperamos MessageState
+		return nil, fmt.Errorf("tipo de respuesta inesperado: %d", respType)
+	}
+
+	messageSize = binary.BigEndian.Uint32(header[1:5])
+
+	message = make([]byte, messageSize)
+	if _, err := io.ReadFull(conn, message); err != nil {
+		log.Println("Error al leer el mensaje:", err)
+		return nil, err
+	}
+
+	//fmt.Println("Mensaje recibido:", string(message))
+
+	if err := json.Unmarshal(message, &messageState); err != nil {
+		log.Println("Error al deserializar MessageState:", err)
+		return nil, err
+	}
+
+	if !messageState.Status {
+		log.Println("Error al procesar la solicitud:", messageState.Error)
+		return nil, fmt.Errorf("error al procesar la solicitud: %s", messageState.Error)
 	}
 
 	//******__________________________________________________*******************
@@ -341,7 +416,7 @@ func ConnectAndGetInfo(conn net.Conn) (*ClientInformation, error) {
 		return nil, err
 	}
 
-	fmt.Println("Mensaje recibido:", string(message))
+	//fmt.Println("Mensaje recibido:", string(message))
 
 	var stateInfo comunication.State
 	if err := json.Unmarshal(message, &stateInfo); err != nil {

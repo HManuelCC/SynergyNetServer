@@ -2,7 +2,6 @@ package SynergyNetServer
 
 import (
 	"crypto/tls"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -17,6 +16,21 @@ var Clients *client.ClientSliceGroups = &client.ClientSliceGroups{}
 
 func NewSocketServer(port int) {
 
+	// Inicializar el gestor de colas con TTL automático
+	balancer.BalancerQueue.Start(Clients, 1000, 5)
+
+	balancer.BalancerQueue.StartTTLManager()
+
+	defer balancer.BalancerQueue.Stop()
+
+	log.Println("SynergyNet Server iniciado con colas optimizadas...")
+
+	startServer(port)
+
+	log.Println("Servidor cerrado correctamente")
+}
+
+func startServer(port int) {
 	var conexionesActuales int = 0
 
 	cert, err := tls.LoadX509KeyPair("../Certs/server.crt", "../Certs/private_server.key")
@@ -32,17 +46,6 @@ func NewSocketServer(port int) {
 		log.Println("Error al crear el servidor: ", err)
 		return
 	}
-	// Iniciar las colas y lanzamos 5 goroutines para cada una
-	balancer.BalancerEventQueue.Start(Clients, 1000, 5)
-	balancer.BalancerStatesQueue.Start(Clients, 1000, 5)
-	balancer.BalancerErrorEventQueue.Start(Clients, 1000, 5)
-	balancer.BalancerErrorStatesQueue.Start(Clients, 100, 5)
-	// Detener las colas
-	defer balancer.BalancerEventQueue.Stop()
-	defer balancer.BalancerStatesQueue.Stop()
-	// Detener la cola de errores
-	defer balancer.BalancerErrorEventQueue.Stop()
-	defer balancer.BalancerErrorStatesQueue.Stop()
 
 	log.Println("Servidor corriendo en el puerto: ", port)
 
@@ -58,14 +61,22 @@ func NewSocketServer(port int) {
 			var addr string = conn.RemoteAddr().String()
 			var port string = ""
 			port = strings.Split(conn.RemoteAddr().String(), ":")[1]
-			fmt.Println("Obteniendo información del cliente")
+			//fmt.Println("Obteniendo información del cliente")
 			clientInfo, err := client.ConnectAndGetInfo(conn)
 			if err != nil || clientInfo == nil {
 				log.Println("Error al obtener la información del cliente: ", err)
 				conn.Close()
 			} else {
 				clientInfo.ClientName = strings.ToUpper(clientInfo.ClientName)
-				client := &client.ClientSocket{Info: *clientInfo, Port: port, Conn: conn, Host: addr, Events: make(chan comunication.Event), States: make(chan comunication.State)}
+				client := &client.ClientSocket{
+					Info:          *clientInfo,
+					Port:          port,
+					Conn:          conn,
+					Host:          addr,
+					Events:        make(chan comunication.Event, 10),
+					States:        make(chan comunication.State, 10),
+					MessageStates: make(chan comunication.MessageState, 10),
+				}
 				Clients.AddClientToGroup(client)
 				log.Println("Nueva conexión establecida: " + client.Info.ClientName)
 				go handler_connections.HandleConnection(client, Clients)
@@ -74,5 +85,4 @@ func NewSocketServer(port int) {
 		}
 
 	}
-
 }

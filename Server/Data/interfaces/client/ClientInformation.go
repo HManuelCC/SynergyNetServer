@@ -7,12 +7,13 @@ import (
 )
 
 type ClientSocket struct {
-	Host   string
-	Port   string
-	Conn   net.Conn
-	Events chan comunication.Event
-	States chan comunication.State
-	Info   ClientInformation
+	Host          string
+	Port          string
+	Conn          net.Conn
+	Events        chan comunication.Event
+	States        chan comunication.State
+	MessageStates chan comunication.MessageState
+	Info          ClientInformation
 }
 
 type ClientHardwareResourcesStatistics struct {

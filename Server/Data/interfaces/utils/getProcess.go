@@ -1,13 +1,6 @@
 package utils
 
-import (
-	"net"
-
-	"github.com/HManuelCC/SynergyNetServer/Server/Data/interfaces/balancer"
-	"github.com/HManuelCC/SynergyNetServer/Server/Data/interfaces/providers"
-)
-
-func GetAllProcessByClientSocketConn(clientSocket net.Conn) ([]*providers.ProcessEvent, []*providers.ProcessState) {
+/*func GetAllProcessByClientSocketConn(clientSocket net.Conn) ([]*providers.ProcessEvent, []*providers.ProcessState) {
 	var events []*providers.ProcessEvent
 	var states []*providers.ProcessState
 
@@ -36,4 +29,4 @@ func GetAllProcessByClientSocketConn(clientSocket net.Conn) ([]*providers.Proces
 	}
 
 	return events, states
-}
+}*/

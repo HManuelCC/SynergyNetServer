@@ -9,82 +9,60 @@ import (
 	"github.com/HManuelCC/SynergyNetServer/Server/Data/interfaces/comunication"
 )
 
-type ProcessEvent struct {
-	PID          int                `json:"pid"`
-	PIDC         int                `json:"pidc"`
-	TTL          int                `json:"ttl"`
-	Attempts     int                `json:"attempts"`
-	Created      time.Time          `json:"created"`
-	Updated      time.Time          `json:"updated"`
-	DataSend     comunication.Event `json:"data_send"`
+type Process struct {
+	PID          int         `json:"pid"`
+	TTL          int         `json:"ttl"`
+	Attempts     int         `json:"attempts"`
+	Created      time.Time   `json:"created"`
+	Updated      time.Time   `json:"updated"`
+	DataSend     interface{} `json:"data_send"`
 	ClientPos    int
 	ClientSocket *client.ClientSocket `json:"-"`
+	Type         string               `json:"type"` // "event" o "state"
+	Priority     int                  `json:"priority"`
 }
 
-type ProcessState struct {
-	PID          int                `json:"pid"`
-	PIDC         int                `json:"pidc"`
-	TTL          int                `json:"ttl"`
-	Attempts     int                `json:"attempts"`
-	Created      time.Time          `json:"created"`
-	Updated      time.Time          `json:"updated"`
-	DataSend     comunication.State `json:"data_send"`
-	ClientPos    int
-	ClientSocket *client.ClientSocket `json:"-"`
-}
-
-func (p *ProcessEvent) GetPID() int {
+func (p *Process) GetPID() int {
 	return p.PID
 }
 
-func (p *ProcessState) GetPID() int {
-	return p.PID
-}
+func (proc *Process) ManageProccess(clients *client.ClientSliceGroups) error {
 
-func (proc *ProcessEvent) ManageProccess(clients *client.ClientSliceGroups) error {
-	clientDestination, err := clients.SearchClientByNameGetClient(strings.ToUpper(proc.DataSend.Destination), proc.ClientPos)
+	var clientDestination *client.ClientSocket = nil
 
-	if err != nil || clientDestination == nil {
+	var err error = nil
+
+	switch proc.Type {
+	case "EVENT":
+		clientDestination, err = clients.SearchClientByNameGetClient(strings.ToUpper(proc.DataSend.(comunication.Event).Destination), proc.ClientPos)
+	case "STATE":
+		clientDestination, err = clients.SearchClientByNameGetClient(strings.ToUpper(proc.DataSend.(comunication.State).Destination), proc.ClientPos)
+	default:
+		log.Println("Tipo de proceso desconocido:", proc.Type)
+		return nil
+	}
+
+	if err == client.ClientErrors.ErrClientOutOfRange {
 
 		proc.ClientPos = 0
 
-		return err
-
-	} else {
-
-		proc.ClientSocket = clientDestination
-
-		proc.DataSend.PID = proc.PID
-
-		err = client.Emit(proc.DataSend, proc.ClientSocket)
-
-		proc.Updated = time.Now()
-
-		proc.ClientPos = proc.ClientPos + 1
-
-		if err != nil {
-
-			log.Println("Error al enviar el evento:", err)
-
-			err := proc.ManageProccess(clients)
-
-			if err != nil {
-				return err
-			}
-
+		switch proc.Type {
+		case "EVENT":
+			clientDestination, err = clients.SearchClientByNameGetClient(strings.ToUpper(proc.DataSend.(comunication.Event).Destination), proc.ClientPos)
+		case "STATE":
+			clientDestination, err = clients.SearchClientByNameGetClient(strings.ToUpper(proc.DataSend.(comunication.State).Destination), proc.ClientPos)
+		default:
+			log.Println("Tipo de proceso desconocido:", proc.Type)
+			return nil
 		}
 
 	}
 
-	return nil
-}
-
-func (proc *ProcessState) ManageProccess(clients *client.ClientSliceGroups) error {
-	clientDestination, err := clients.SearchClientByNameGetClient(strings.ToUpper(proc.DataSend.Destination), proc.ClientPos)
-
 	if err != nil || clientDestination == nil {
 
 		proc.ClientPos = 0
+
+		proc.Updated = time.Now()
 
 		return err
 
@@ -92,11 +70,7 @@ func (proc *ProcessState) ManageProccess(clients *client.ClientSliceGroups) erro
 
 		proc.ClientSocket = clientDestination
 
-		proc.DataSend.SERVERPID = proc.PID
-
-		proc.DataSend.LOCALPID = proc.PIDC
-
-		err = client.Emit(proc.DataSend, proc.ClientSocket)
+		err = client.Emit(proc.DataSend, proc.ClientSocket, proc.PID)
 
 		proc.Updated = time.Now()
 
@@ -106,11 +80,7 @@ func (proc *ProcessState) ManageProccess(clients *client.ClientSliceGroups) erro
 
 			log.Println("Error al enviar el evento:", err)
 
-			err := proc.ManageProccess(clients)
-
-			if err != nil {
-				return err
-			}
+			return err
 
 		}
 
