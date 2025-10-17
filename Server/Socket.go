@@ -1,8 +1,8 @@
 package SynergyNetServer
 
 import (
-	"crypto/tls"
 	"log"
+	"net"
 	"strconv"
 	"strings"
 
@@ -33,15 +33,15 @@ func NewSocketServer(port int) {
 func startServer(port int) {
 	var conexionesActuales int = 0
 
-	cert, err := tls.LoadX509KeyPair("../Certs/server.crt", "../Certs/private_server.key")
+	/*cert, err := tls.LoadX509KeyPair("../Certs/server.crt", "../Certs/private_server.key")
 	if err != nil {
 		log.Fatal("Error cargando certificado:", err)
 	}
 
 	// Configuración TLS
-	config := &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13}
+	config := &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13}*/
 
-	server, err := tls.Listen("tcp", ":"+strconv.Itoa(port), config)
+	server, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 	if err != nil {
 		log.Println("Error al crear el servidor: ", err)
 		return
