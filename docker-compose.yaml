@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  synergynetserver:
+    build: .
+    container_name: synergynetserver
+    ports:
+      - "4430:4430"
+    environment:
+      - SYNERGYNET_PORT=4430

@@ -1,0 +1,20 @@
+version: "3.8"
+
+include:
+  - path: ../../docker-compose.yaml
+services:
+  synergynetclientpython:
+  image: python:3.11-slim
+  working_dir: /app
+  volumes:
+    - .:/app
+  depends_on:
+    - synergynetserver
+  command: >
+    sh -c "
+        echo '=== Compilando y ejecutando pruebas Python ===' &&
+        python -m py_compile main.py &&
+        echo '=== Esperando servidor...' &&
+        sleep 3 &&
+        python main.py
+      "

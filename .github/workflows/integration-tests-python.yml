@@ -1,0 +1,71 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main, python_client]
+  pull_request:
+    branches: [main, python_client]
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - &setup-buildx
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - &setup-qemu
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - &build_and_run_server
+        name: Build docker images
+        run: docker build -t synergynetserver:latest .
+
+      - name: Run container
+        run: |
+          docker run -d \
+            -p 4430:4430 \
+            --name synergynetserver \
+            synergynetserver:latest
+
+      - &wait-for-server
+        name: Wait for server to be ready
+        run: sleep 10
+
+      - &cleanup
+        name: Cleanup
+        if: always()
+        run: |
+          docker logs synergynetserver || true
+          docker stop synergynetserver
+          docker rm synergynetserver
+
+      - &set-up-python
+        name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - &install-dependencies
+        name: Install dependencies
+        run: |
+          cd Clients/Python
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || true
+
+      - &run-python-integration
+        name: Run Python integration tests
+        run: |
+          cd Clients/Python
+          python main.py
+
+      - *build_and_run_server
+      - *wait-for-server
+      - *cleanup
+      - *set-up-python
+      - *install-dependencies
