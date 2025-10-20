@@ -63,9 +63,3 @@ jobs:
         run: |
           cd Clients/Python
           python main.py
-
-      - *build_and_run_server
-      - *wait-for-server
-      - *cleanup
-      - *set-up-python
-      - *install-dependencies
