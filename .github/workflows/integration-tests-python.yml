@@ -59,7 +59,7 @@ jobs:
           pip install -r requirements.txt || true
 
       - &run-python-integration
-        name: Run Python integration tests
+        name: Run Python integration
         run: |
           cd Clients/Python
           python main.py
