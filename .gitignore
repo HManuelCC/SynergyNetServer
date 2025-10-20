@@ -1,0 +1,3 @@
+
+# Ignoramos el directorio de certificados TLS
+/Certs
