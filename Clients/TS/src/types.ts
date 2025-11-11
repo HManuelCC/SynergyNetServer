@@ -26,7 +26,7 @@ export interface Event {
 
 export interface State {
   status: boolean;
-  state: string; // Message field in Go is tagged as `state`
+  message: string; // Message field in Go is tagged as `state`
   error: string;
   data: any;
   destination?: string;

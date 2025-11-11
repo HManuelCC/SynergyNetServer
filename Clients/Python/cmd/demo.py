@@ -79,7 +79,6 @@ def make_handler(client: SynergyClient) -> Callable[..., BaseHTTPRequestHandler]
                 self.send_header("Content-Length", str(len(payload)))
                 self.end_headers()
                 self.wfile.write(payload)
-                sys.exit(0)
             try:
                 client.send(event, callback=callback)
             except TimeoutError:

@@ -37,7 +37,7 @@ export class EventSlice {
     } else {
       client.sendState({
         status: false,
-        state: 'No se puede reconocer el evento',
+        message: 'No se puede reconocer el evento',
         error: 'Evento no reconocido',
         data: null,
         origen: e.destination,

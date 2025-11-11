@@ -172,7 +172,7 @@ class State:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "status": self.status,
-            "state": self.message,
+            "message": self.message,
             "error": self.error,
             "data": self.data,
             "destination": self.destination,

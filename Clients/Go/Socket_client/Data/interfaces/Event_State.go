@@ -37,7 +37,7 @@ type Event struct {
 
 type State struct {
 	Status      bool        `json:"status"`
-	Message     string      `json:"state"`
+	Message     string      `json:"message"`
 	Error       string      `json:"error"`
 	Data        interface{} `json:"data"`
 	Destination string      `json:"destination"`

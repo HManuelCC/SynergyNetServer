@@ -12,7 +12,7 @@ type Event struct {
 
 type State struct {
 	Status      bool        `json:"status"`
-	Message     string      `json:"state"`
+	Message     string      `json:"message"`
 	Error       string      `json:"error"`
 	Destination string      `json:"destination"`
 	Origen      string      `json:"origen"`
