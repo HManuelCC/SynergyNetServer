@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"errors"
 	"log"
 	"strings"
 	"time"
@@ -26,7 +27,54 @@ func (p *Process) GetPID() int {
 	return p.PID
 }
 
-func (proc *Process) ManageProccess(clients *client.ClientSliceGroups) error {
+func (p *Process) ManageProcessByEventSubscription(clients *client.ClientSliceGroups, eventSubscriptions *client.ClientSliceGroupMapEventSubscription) error {
+
+	//fmt.Println("Manejando events subscriptino")
+
+	var clientDestination *client.ClientSocket = nil
+
+	var err error = nil
+
+	subscribers, exists := (*eventSubscriptions)[strings.ToUpper(p.DataSend.(comunication.Event).Event)]
+
+	if !exists || len(subscribers.Subscribers) == 0 {
+		log.Println("No subscribers found for event:", p.DataSend.(comunication.Event).Event)
+		p.Updated = time.Now()
+		return nil
+	}
+
+	if p.ClientPos >= len(subscribers.Subscribers) {
+		p.ClientPos = 0
+	}
+
+	clientDestination = subscribers.Subscribers[p.ClientPos]
+
+	if clientDestination == nil {
+		log.Println("Subscriber client is nil for event:", p.DataSend.(comunication.Event).Event)
+		p.Updated = time.Now()
+		return errors.New("subscriber client is nil")
+	}
+
+	p.ClientSocket = clientDestination
+
+	err = client.Emit(p.DataSend, p.ClientSocket, p.PID)
+
+	p.Updated = time.Now()
+
+	p.ClientPos = p.ClientPos + 1
+
+	if err != nil {
+
+		log.Println("Error al enviar el evento:", err)
+
+		return err
+
+	}
+
+	return nil
+}
+
+func (proc *Process) ManageProccess(clients *client.ClientSliceGroups, eventsClientSubscripcion *client.ClientSliceGroupMapEventSubscription) error {
 
 	var clientDestination *client.ClientSocket = nil
 
@@ -34,7 +82,8 @@ func (proc *Process) ManageProccess(clients *client.ClientSliceGroups) error {
 
 	switch proc.Type {
 	case "EVENT":
-		clientDestination, err = clients.SearchClientByNameGetClient(strings.ToUpper(proc.DataSend.(comunication.Event).Destination), proc.ClientPos)
+		return proc.ManageProcessByEventSubscription(clients, eventsClientSubscripcion)
+		//clientDestination, err = clients.SearchClientByNameGetClient(strings.ToUpper(proc.DataSend.(comunication.Event).Destination), proc.ClientPos)
 	case "STATE":
 		clientDestination, err = clients.SearchClientByNameGetClient(strings.ToUpper(proc.DataSend.(comunication.State).Destination), proc.ClientPos)
 	default:
@@ -78,7 +127,7 @@ func (proc *Process) ManageProccess(clients *client.ClientSliceGroups) error {
 
 		if err != nil {
 
-			log.Println("Error al enviar el evento:", err)
+			log.Println("Error al enviar el proceso:", err)
 
 			return err
 

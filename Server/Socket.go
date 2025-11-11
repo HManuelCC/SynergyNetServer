@@ -13,11 +13,12 @@ import (
 )
 
 var Clients *client.ClientSliceGroups = &client.ClientSliceGroups{}
+var EventSubscriptions *client.ClientSliceGroupMapEventSubscription = &client.ClientSliceGroupMapEventSubscription{}
 
 func NewSocketServer(port int) {
 
 	// Inicializar el gestor de colas con TTL automático
-	balancer.BalancerQueue.Start(Clients, 1000, 5)
+	balancer.BalancerQueue.Start(Clients, 1000, 5, EventSubscriptions)
 
 	balancer.BalancerQueue.StartTTLManager()
 
@@ -73,13 +74,14 @@ func startServer(port int) {
 					Port:          port,
 					Conn:          conn,
 					Host:          addr,
-					Events:        make(chan comunication.Event, 10),
-					States:        make(chan comunication.State, 10),
-					MessageStates: make(chan comunication.MessageState, 10),
+					Events:        make(chan comunication.Event, 100),
+					States:        make(chan comunication.State, 100),
+					MessageStates: make(chan comunication.MessageState, 100),
 				}
 				Clients.AddClientToGroup(client)
+				EventSubscriptions.AddSubscriber(client)
 				log.Println("Nueva conexión establecida: " + client.Info.ClientName)
-				go handler_connections.HandleConnection(client, Clients)
+				go handler_connections.HandleConnection(client, Clients, EventSubscriptions)
 			}
 
 		}

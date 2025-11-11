@@ -14,16 +14,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - &setup-buildx
-        name: Set up Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - &setup-qemu
-        name: Set up QEMU
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - &build_and_run_server
-        name: Build docker images
+      - name: Build docker images
         run: docker build -t synergynetserver:latest .
 
       - name: Run container
@@ -33,33 +30,60 @@ jobs:
             --name synergynetserver \
             synergynetserver:latest
 
-      - &wait-for-server
-        name: Wait for server to be ready
+      - name: Wait for server to be ready
         run: sleep 10
 
-      - &cleanup
-        name: Cleanup
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd Clients/Python
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start Python HTTP demo server
+        run: |
+          cd Clients/Python
+          nohup python cmd/demo.py > server.log 2>&1 &
+
+      - name: Wait for Python server to start
+        run: sleep 5
+
+      - name: Test HTTP endpoint
+        run: |
+          echo "🚀 Probando endpoint /login_prueba..."
+          RESPONSE=$(curl -s -w "%{http_code}" -o response.json "http://localhost:8080/login_prueba?username=test_user")
+          echo "Código de respuesta: $RESPONSE"
+
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "❌ El endpoint devolvió un código distinto de 200"
+            echo "Respuesta del servidor:"
+            cat response.json || true
+            exit 1
+          fi
+
+          echo "✅ Endpoint respondió 200 OK"
+          echo "Contenido devuelto:"
+          cat response.json
+
+          # Validar que la respuesta tenga el campo "message" con el texto esperado
+          if ! grep -q '"message"' response.json; then
+            echo "❌ La respuesta no contiene el campo 'message'"
+            exit 1
+          fi
+
+          echo "✅ Respuesta válida y contiene 'message'"
+
+      - name: Cleanup
         if: always()
         run: |
           docker logs synergynetserver || true
           docker stop synergynetserver
           docker rm synergynetserver
 
-      - &set-up-python
-        name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - &install-dependencies
-        name: Install dependencies
-        run: |
-          cd Clients/Python
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt || true
-
-      - &run-python-integration
-        name: Run Python integration
-        run: |
-          cd Clients/Python
-          python main.py
+      - name: Notify failure
+        if: failure()
+        run: echo "❌ Algo salió mal en la integración"

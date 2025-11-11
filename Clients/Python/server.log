@@ -1,0 +1,7 @@
+INFO:Socket_client.Client:[client test_py] connected (latency 10 ms)
+INFO:__main__:Servidor HTTP escuchando en :8080
+INFO:__main__:Mensaje recibido: TEST_PY
+INFO:Socket_client.Data.interfaces.Event_State:Estado enviado al proceso con PID: 153651
+ERROR:__main__:Error sending login event: error en la respuesta del servidor: 
+INFO:__main__:HTTP 127.0.0.1 - code 500, message Internal Server Error
+INFO:__main__:HTTP 127.0.0.1 - "GET /login_prueba?username=manuel HTTP/1.1" 500 -

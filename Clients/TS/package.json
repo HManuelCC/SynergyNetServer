@@ -1,0 +1,42 @@
+{
+  "name": "synergynet-ts-client",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "README.md"
+  ],
+  "keywords": ["synergynet", "tcp", "client", "realtime"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HManuelCC/SynergyNetClient.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "node dist/demo.js",
+    "dev": "ts-node src/demo.ts",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "systeminformation": "^5.23.10"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "ts-node": "^10.9.2",
+    "@types/node": "^22.7.8"
+  }
+}

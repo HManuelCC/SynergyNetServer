@@ -1,7 +1,6 @@
 package handler_connections
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -13,7 +12,7 @@ import (
 
 var max int = 0 // Variable global para almacenar el valor máximo
 
-func HandleConnection(client *client.ClientSocket, clients *client.ClientSliceGroups) {
+func HandleConnection(client *client.ClientSocket, clients *client.ClientSliceGroups, clientsEventSubs *client.ClientSliceGroupMapEventSubscription) {
 
 	defer client.Conn.Close()
 	connected := make(chan bool, 1)
@@ -29,6 +28,7 @@ func HandleConnection(client *client.ClientSocket, clients *client.ClientSliceGr
 			log.Println("Cliente desconectado: ", client.Info.ClientName)
 
 			clients.RemoveClient(client.Host)
+			clientsEventSubs.RemoveSubscriber(client)
 
 			log.Println("Cerrando conexion")
 
@@ -58,6 +58,8 @@ func HandleConnectionDispatcher(client *client.ClientSocket, clients *client.Cli
 	})
 }
 func HandleEventDispatcher(result comunication.Event, ClientSocket *client.ClientSocket, clients *client.ClientSliceGroups) {
+	result.Origen = ClientSocket.Info.ClientName
+
 	var process providers.Process = providers.Process{
 		PID:          0,
 		TTL:          5,
@@ -67,13 +69,14 @@ func HandleEventDispatcher(result comunication.Event, ClientSocket *client.Clien
 		DataSend:     result,
 		ClientSocket: nil,
 		ClientPos:    0,
+		Type:         "EVENT",
 	}
 
 	balancer.BalancerQueue.AddTask(process)
 }
 
 func HandleStateDispatcher(result comunication.State, clientSocket *client.ClientSocket, clients *client.ClientSliceGroups) {
-
+	result.Origen = clientSocket.Info.ClientName
 	var process providers.Process = providers.Process{
 		PID:          0,
 		TTL:          5,
@@ -83,28 +86,15 @@ func HandleStateDispatcher(result comunication.State, clientSocket *client.Clien
 		DataSend:     result,
 		ClientSocket: nil,
 		ClientPos:    0,
+		Type:         "STATE",
 	}
 
-	// Usar el gestor unificado para agregar el proceso
 	balancer.BalancerQueue.AddTask(process)
 }
 
 func HandleClientMessageState(result comunication.MessageState, clientSocket *client.ClientSocket, clients *client.ClientSliceGroups) {
 
-	// Procesar el mensaje de estado de manera optimizada
-	/*if err := processManager.HandleMessageState(result); err != nil {
-		// Log del error y el mensaje que causó el problema
-		log.Printf("Error processing MessageState from client %s: %v. MessageState: %s",
-			clientSocket.Info.ClientName, err, result.ToString())
-
-		// Si el proceso no se encontró, podría ser un mensaje válido para un proceso ya completado
-		if err.Error() == "process not found" {
-			log.Printf("MessageState for completed process from client %s: %s",
-				clientSocket.Info.ClientName, result.ToString())
-		}
-		return
-	}*/
-	fmt.Println("Processing MessageState from client:", clientSocket.Info.ClientName, "MessageState:", result.ToString())
+	//fmt.Println("Processing MessageState from client:", clientSocket.Info.ClientName, "MessageState:", result.ToString())
 	err := balancer.BalancerQueue.ManageProcessWithMessageState(result, clientSocket)
 	if err != nil {
 		// Log del error y el mensaje que causó el problema
@@ -113,8 +103,6 @@ func HandleClientMessageState(result comunication.MessageState, clientSocket *cl
 		return
 	}
 
-	// Log exitoso del procesamiento
-
-	balancer.BalancerQueue.Print()
+	//balancer.BalancerQueue.Print()
 
 }

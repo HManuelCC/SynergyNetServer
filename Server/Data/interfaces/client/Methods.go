@@ -31,34 +31,36 @@ func (c *ClientSocket) Disconnect() {
 }
 
 func (c *ClientSocket) On(callback CallbackFunc) {
-	for {
-		select {
-		case val, ok := <-c.Events:
-			//fmt.Println("On Event received:", val, " ok:", ok)
-			if !ok {
-				c.Events = nil // evitar ciclo infinito al cerrarse
-			} else {
-				callback(val)
+	go func() {
+		for {
+			select {
+			case val, ok := <-c.Events:
+				//fmt.Println("On Event received:", val, " ok:", ok)
+				if !ok {
+					c.Events = nil // evitar ciclo infinito al cerrarse
+				} else {
+					go callback(val)
+				}
+			case val, ok := <-c.States:
+				//fmt.Println("On State received:", val, " ok:", ok)
+				if !ok {
+					c.States = nil
+				} else {
+					go callback(val)
+				}
+			case val, ok := <-c.MessageStates:
+				//fmt.Println("On MessageState received:", val, " ok:", ok)
+				if !ok {
+					c.MessageStates = nil
+				} else {
+					go callback(val)
+				}
 			}
-		case val, ok := <-c.States:
-			//fmt.Println("On State received:", val, " ok:", ok)
-			if !ok {
-				c.States = nil
-			} else {
-				callback(val)
-			}
-		case val, ok := <-c.MessageStates:
-			//fmt.Println("On MessageState received:", val, " ok:", ok)
-			if !ok {
-				c.MessageStates = nil
-			} else {
-				callback(val)
+			if c.Events == nil && c.States == nil && c.MessageStates == nil {
+				return
 			}
 		}
-		if c.Events == nil && c.States == nil && c.MessageStates == nil {
-			return
-		}
-	}
+	}()
 }
 func (c *ClientSliceGroups) SearchClientByName(clientName string) (int, error) {
 	for i := range *c {
@@ -158,6 +160,43 @@ func (c *ClientSliceGroups) AddClientToGroup(client *ClientSocket) {
 	*c = append(*c, newGroup)
 }
 
+func (c *ClientSliceGroupMapEventSubscription) AddSubscriber(client *ClientSocket) {
+	for _, eventName := range client.Info.Events.Events {
+		key := strings.ToUpper(eventName)
+		if _, exists := (*c)[key]; !exists {
+			(*c)[key] = &EventSliceSubsription{Subscribers: []*ClientSocket{}}
+		}
+		(*c)[key].Subscribers = append((*c)[key].Subscribers, client)
+		//Reacomodamos por latencia
+		(*c)[key].Subscribers = SortClientsByLatency((*c)[key].Subscribers)
+	}
+}
+
+func (c *ClientSliceGroupMapEventSubscription) RemoveSubscriber(client *ClientSocket) {
+	for _, eventName := range client.Info.Events.Events {
+		key := strings.ToUpper(eventName)
+		if subscription, exists := (*c)[key]; exists {
+			for i, subscriber := range subscription.Subscribers {
+				if subscriber.Host == client.Host {
+					subscription.Subscribers = append(subscription.Subscribers[:i], subscription.Subscribers[i+1:]...)
+					break
+				}
+			}
+			if len(subscription.Subscribers) == 0 {
+				delete(*c, key)
+			}
+		}
+	}
+}
+
+func (c *ClientSliceGroupMapEventSubscription) GetSubscribers(eventName string) ([]*ClientSocket, error) {
+	key := strings.ToUpper(eventName)
+	if subscription, exists := (*c)[key]; exists {
+		return subscription.Subscribers, nil
+	}
+	return nil, fmt.Errorf("no subscribers for event: %s", eventName)
+}
+
 func SortClientsByLatency(c []*ClientSocket) []*ClientSocket {
 	sortedClients := make([]*ClientSocket, len(c))
 	copy(sortedClients, c)
@@ -232,6 +271,7 @@ func (client *ClientSocket) ReadData(connected chan bool) {
 		// Leer encabezado (1 byte tipo + 4 bytes tamaño)
 		header := make([]byte, 5)
 		_, err := io.ReadFull(client.Conn, header)
+		fmt.Println("Header recibido:", header)
 		if err != nil {
 			if err == io.EOF {
 				log.Println("El cliente cerró la conexión")
@@ -260,6 +300,7 @@ func (client *ClientSocket) ReadData(connected chan bool) {
 
 		switch tipo {
 		case 1: // Evento
+			fmt.Println("Evento recibido:", string(message))
 			var event comunication.Event
 			if err := json.Unmarshal(message, &event); err != nil {
 				log.Println("Error al obtener los datos:", err)

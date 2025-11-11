@@ -14,6 +14,7 @@ type ClientSocket struct {
 	States        chan comunication.State
 	MessageStates chan comunication.MessageState
 	Info          ClientInformation
+	RawMessages   chan []byte
 }
 
 type ClientHardwareResourcesStatistics struct {
@@ -27,6 +28,11 @@ type ClientInformation struct {
 	ClientName string                            `json:"client_name"`
 	Latency    float64                           `json:"latency"`
 	Resources  ClientHardwareResourcesStatistics `json:"resources"`
+	Events     EventsSubscribed                  `json:"events"`
+}
+
+type EventsSubscribed struct {
+	Events []string
 }
 
 type ClientSlice struct {
@@ -34,4 +40,11 @@ type ClientSlice struct {
 	clients []*ClientSocket
 }
 
+type EventSliceSubsription struct {
+	Subscribers []*ClientSocket
+}
+
 type ClientSliceGroups []*ClientSlice
+type ClientSliceGroupMap map[string]*ClientSlice
+
+type ClientSliceGroupMapEventSubscription map[string]*EventSliceSubsription
