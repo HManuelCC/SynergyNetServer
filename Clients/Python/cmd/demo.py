@@ -31,7 +31,7 @@ def create_events() -> None:
 def login_event_handler(event: Event, conn, message_pid: int,destination: str) -> None:
     print(destination)
     state = State(
-        status=True,
+        status=False,
         message="Hola go",
         error="",
         data=None,
