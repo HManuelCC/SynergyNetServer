@@ -11,6 +11,7 @@ import (
 )
 
 type Process struct {
+	ClientPID    int         `json:"client_pid"`
 	PID          int         `json:"pid"`
 	TTL          int         `json:"ttl"`
 	Attempts     int         `json:"attempts"`

@@ -164,8 +164,9 @@ export class Client {
         if (!this.socket)
             return;
         state.destination = destination;
-        // Primero avisamos MessageState (ProcessStatus=2) y luego enviamos el State
-        this.sendMessageState({ status: true, server_pid: messagePid, state: 'El servidor proceso la solicitud', error: '', process_status: 2 });
+        state.pid = messagePid;
+        // Primero avisamos MessageState (ProcessStatus=1) y luego enviamos el State
+        this.sendMessageState({ status: true, server_pid: messagePid, state: 'El servidor proceso la solicitud', error: '', process_status: 1 });
         const buf = Buffer.from(JSON.stringify(state));
         const packet = packNoPid(2, buf);
         this.socket.write(packet);
@@ -199,10 +200,10 @@ export class Client {
                 events: { events: GlobalEventSlice.subscribed.events }
             };
             // send as State back
-            this.sendState({ status: true, state: 'Cliente conectado con exito.', error: '', data: JSON.stringify(info), origen: this.name }, messagePid, '127.0.0.1');
+            this.sendState({ status: true, message: 'Cliente conectado con exito.', error: '', data: JSON.stringify(info), origen: this.name }, messagePid, '127.0.0.1');
         }
         catch (err) {
-            this.sendState({ status: false, state: 'Error al convertir la información del cliente a JSON', error: String(err), data: null, origen: this.name }, messagePid, '127.0.0.1');
+            this.sendState({ status: false, message: 'Error al convertir la información del cliente a JSON', error: String(err), data: null, origen: this.name }, messagePid, '127.0.0.1');
         }
     }
     async getSystemStats() {

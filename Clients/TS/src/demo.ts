@@ -14,7 +14,6 @@ GlobalEventSlice.addEvent('login', (event, client, messagePid, destination) => {
       message: 'Login successful',
       error: '',
       data: { welcomeMessage: `Welcome back, ${username}!` },
-      pid: event.pid,
     }, messagePid, destination);
   } else {
     client.sendState({
@@ -22,7 +21,6 @@ GlobalEventSlice.addEvent('login', (event, client, messagePid, destination) => {
       message: 'Login failed',
       error: 'Invalid credentials',
       data: null,
-      pid: event.pid,
     }, messagePid, destination);
   }
 });

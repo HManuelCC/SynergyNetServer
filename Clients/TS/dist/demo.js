@@ -8,26 +8,24 @@ GlobalEventSlice.addEvent('login', (event, client, messagePid, destination) => {
     if (username === 'admin' && password === 'password123') {
         client.sendState({
             status: true,
-            state: 'Login successful',
+            message: 'Login successful',
             error: '',
             data: { welcomeMessage: `Welcome back, ${username}!` },
-            pid: event.pid,
         }, messagePid, destination);
     }
     else {
         client.sendState({
             status: true,
-            state: 'Login failed',
+            message: 'Login failed',
             error: 'Invalid credentials',
             data: null,
-            pid: event.pid,
         }, messagePid, destination);
     }
 });
 GlobalEventSlice.addEvent('registro', (event, client, messagePid, destination) => {
     client.sendState({
         status: true,
-        state: 'Hola amigo',
+        message: 'Hola amigo',
         error: '',
         data: null,
         pid: event.pid,

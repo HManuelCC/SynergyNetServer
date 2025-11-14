@@ -175,8 +175,10 @@ export class Client {
   sendState(state: State, messagePid: number, destination: string) {
     if (!this.socket) return;
     state.destination = destination;
-    // Primero avisamos MessageState (ProcessStatus=2) y luego enviamos el State
-    this.sendMessageState({ status: true, server_pid: messagePid, state: 'El servidor proceso la solicitud', error: '', process_status: 2 });
+    state.pid = messagePid;
+    // Primero avisamos MessageState (ProcessStatus=1) y luego enviamos el State
+    this.sendMessageState({ status: true, server_pid: messagePid, state: 'El servidor proceso la solicitud', error: '', process_status: 1 });
+
     const buf = Buffer.from(JSON.stringify(state));
     const packet = packNoPid(2, buf);
     this.socket.write(packet);

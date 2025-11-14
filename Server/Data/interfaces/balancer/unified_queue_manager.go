@@ -37,10 +37,10 @@ func (utm *Queue) ManageProcessWithMessageState(state comunication.MessageState,
 	}
 
 	// 1. Obtener la tarea
-	utm.mutex.Lock()                          // ¡Bloquear ANTES de get!
+	utm.Mutex.Lock()                          // ¡Bloquear ANTES de get!
 	task := utm.GetTaskByPID(state.ServerPID) // Necesitarás crear esta función
 	if task == nil {
-		utm.mutex.Unlock()
+		utm.Mutex.Unlock()
 		return ErrProcessNotFound
 	}
 
@@ -56,13 +56,13 @@ func (utm *Queue) ManageProcessWithMessageState(state comunication.MessageState,
 		task.Attempts--
 		if task.Attempts <= 0 {
 			utm.RemoveTaskByPID(state.ServerPID)
-			utm.mutex.Unlock() // Desbloquear antes de retornar error
+			utm.Mutex.Unlock() // Desbloquear antes de retornar error
 			return fmt.Errorf("%w%s", ErrProcessFailed, state.Error)
 		}
 	}
 
 	// 3. Desbloquear al final
-	utm.mutex.Unlock()
+	utm.Mutex.Unlock()
 	return nil
 }
 
@@ -71,7 +71,7 @@ func (q *Queue) StartTTLManager() {
 	go func() {
 		defer ticker.Stop()
 		for range ticker.C {
-			q.mutex.Lock()
+			q.Mutex.Lock()
 			var tasksToRetry []*providers.Process
 			for pid, task := range q.Tasks {
 				elapsed := time.Since(task.Updated)
@@ -89,7 +89,7 @@ func (q *Queue) StartTTLManager() {
 					tasksToRetry = append(tasksToRetry, task)
 				}
 			}
-			q.mutex.Unlock()
+			q.Mutex.Unlock()
 
 			for _, task := range tasksToRetry {
 				q.Receive <- task
@@ -106,16 +106,18 @@ func (utm *Queue) AddTask(t providers.Process) {
 
 	newTask.Priority = 0
 	newTask.PID = generateRandomPIDfromMap()
+	newTask.Created = time.Now()
+	newTask.Updated = time.Now()
 
 	// Bloquea solo para escribir en el mapa
-	utm.mutex.Lock()
+	utm.Mutex.Lock()
 	if utm.Tasks == nil {
 		utm.Tasks = make(map[int]*providers.Process)
 	}
 	utm.Tasks[newTask.PID] = &newTask
 	/*pr := t.Priority
 	utm.priorityBuckets[pr] = append(utm.priorityBuckets[pr], &newTask)*/
-	utm.mutex.Unlock()
+	utm.Mutex.Unlock()
 
 	// Ahora que ya liberaste el lock, puedes enviar al canal
 	utm.Receive <- &newTask
@@ -162,14 +164,14 @@ func (utm *Queue) GetTaskByPID(pid int) *providers.Process {
 }
 
 func (utm *Queue) GetTasks() map[int]*providers.Process {
-	utm.mutex.Lock()
-	defer utm.mutex.Unlock()
+	utm.Mutex.Lock()
+	defer utm.Mutex.Unlock()
 	return utm.Tasks
 }
 
 func (utm *Queue) Print() {
-	utm.mutex.Lock()
-	defer utm.mutex.Unlock()
+	utm.Mutex.Lock()
+	defer utm.Mutex.Unlock()
 	if len(utm.Tasks) == 0 {
 		fmt.Println("No tasks in the queue.")
 		return
@@ -191,9 +193,9 @@ func (utm *Queue) Start(clients *client.ClientSliceGroups, buffer int, workers i
 				err := proc.ManageProccess(utm.Clients, utm.EventsClientSubscripcion)
 				if err != nil {
 					log.Printf("Error processing PID %d: %v", proc.PID, err)
-					utm.mutex.Lock()
+					utm.Mutex.Lock()
 					proc.Priority += 1
-					utm.mutex.Unlock()
+					utm.Mutex.Unlock()
 				}
 
 			}

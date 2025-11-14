@@ -22,7 +22,7 @@ export interface Event {
 }
 export interface State {
     status: boolean;
-    state: string;
+    message: string;
     error: string;
     data: any;
     destination?: string;

@@ -189,10 +189,11 @@ func (object MessageState) SendData(client *Client) {
 
 func (object State) SendData(client *Client, messagePid int, destination string) {
 
-	var stateResponse *MessageState = &MessageState{Message: "El servidor proceso la solicitud", Status: true, ServerPID: messagePid, Error: "", ProcessStatus: 2}
+	var stateResponse *MessageState = &MessageState{Message: "El servidor proceso la solicitud", Status: true, ServerPID: messagePid, Error: "", ProcessStatus: 1}
 	stateResponse.SendData(client)
 
 	object.Destination = destination
+	object.PID = messagePid
 
 	var typeBuf byte = 2
 

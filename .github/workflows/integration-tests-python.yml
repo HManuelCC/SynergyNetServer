@@ -54,28 +54,28 @@ jobs:
 
       - name: Test HTTP endpoint
         run: |
-          echo "🚀 Probando endpoint /login_prueba..."
+          echo "Probando endpoint /login_prueba..."
           RESPONSE=$(curl -s -w "%{http_code}" -o response.json "http://localhost:8080/login_prueba?username=test_user")
           echo "Código de respuesta: $RESPONSE"
 
           if [ "$RESPONSE" -ne 200 ]; then
-            echo "❌ El endpoint devolvió un código distinto de 200"
+            echo "El endpoint devolvió un código distinto de 200"
             echo "Respuesta del servidor:"
             cat response.json || true
             exit 1
           fi
 
-          echo "✅ Endpoint respondió 200 OK"
+          echo "Endpoint respondió 200 OK"
           echo "Contenido devuelto:"
           cat response.json
 
           # Validar que la respuesta tenga el campo "message" con el texto esperado
           if ! grep -q '"message"' response.json; then
-            echo "❌ La respuesta no contiene el campo 'message'"
+            echo "La respuesta no contiene el campo 'message'"
             exit 1
           fi
 
-          echo "✅ Respuesta válida y contiene 'message'"
+          echo "Respuesta válida y contiene 'message'"
 
       - name: Cleanup
         if: always()
@@ -86,4 +86,4 @@ jobs:
 
       - name: Notify failure
         if: failure()
-        run: echo "❌ Algo salió mal en la integración"
+        run: echo "Algo salió mal en la integración"

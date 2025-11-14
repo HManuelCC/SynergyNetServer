@@ -35,7 +35,6 @@ def login_event_handler(event: Event, conn, message_pid: int,destination: str) -
         message="Hola go",
         error="",
         data=None,
-        pid=event.pid,
     )
     logger.info("Mensaje recibido: %s", event.origen)
     state.send_data(conn, message_pid,destination)

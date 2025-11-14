@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	SynergyNetClient "github.com/HManuelCC/SynergyNetClient/Socket_client"
-	"github.com/HManuelCC/SynergyNetClient/Socket_client/Data/interfaces"
 )
 
 func main() {
@@ -20,20 +19,19 @@ func main() {
 
 	go createRoutes(mux, testConn)
 
-	http.ListenAndServe(":8081", mux)
+	http.ListenAndServe(":8080", mux)
 
 	select {}
 }
 
 func createEvents() {
-	SynergyNetClient.EventSlice.AddEvent("login", func(event interfaces.Event, conn *interfaces.Client, messagePid int, destination string) {
+	SynergyNetClient.EventSlice.AddEvent("login", func(event SynergyNetClient.Event, conn *SynergyNetClient.Client, messagePid int, destination string) {
 
-		var state interfaces.State = interfaces.State{
+		var state SynergyNetClient.State = SynergyNetClient.State{
 			Status:  true,
 			Message: "Hola go",
 			Error:   "",
 			Data:    nil,
-			PID:     event.PID,
 		}
 
 		fmt.Println("Mensaje recibido: ", event.Origen)
@@ -41,9 +39,9 @@ func createEvents() {
 
 	})
 
-	SynergyNetClient.EventSlice.AddEvent("registro", func(event interfaces.Event, conn *interfaces.Client, messagePid int, destination string) {
+	SynergyNetClient.EventSlice.AddEvent("registro", func(event SynergyNetClient.Event, conn *SynergyNetClient.Client, messagePid int, destination string) {
 
-		var state interfaces.State = interfaces.State{
+		var state SynergyNetClient.State = SynergyNetClient.State{
 			Status:  true,
 			Message: "Hola amigo",
 			Error:   "",
@@ -57,10 +55,10 @@ func createEvents() {
 	})
 }
 
-func createRoutes(mux *http.ServeMux, testConn *interfaces.Client) {
+func createRoutes(mux *http.ServeMux, testConn *SynergyNetClient.Client) {
 	mux.HandleFunc("/login_prueba", func(w http.ResponseWriter, r *http.Request) {
 		username := r.URL.Query().Get("username")
-		event := interfaces.Event{
+		event := SynergyNetClient.Event{
 			Event: "login",
 			Data: map[string]string{
 				"username": username,
@@ -69,7 +67,7 @@ func createRoutes(mux *http.ServeMux, testConn *interfaces.Client) {
 		}
 		fmt.Print("Enviando evento de login: ", event.Origen)
 
-		err := testConn.Send(event, nil, func(response interfaces.State) {
+		err := testConn.Send(event, nil, func(response SynergyNetClient.State) {
 
 			fmt.Println(response.ToString())
 			// Manejar la respuesta del evento aqu

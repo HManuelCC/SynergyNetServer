@@ -161,7 +161,7 @@ class Event:
 @dataclass
 class State:
     data: Any
-    pid: int
+    pid: int=0
     status: bool = True
     message: str = ""
     error: str = ""
@@ -204,11 +204,12 @@ class State:
             server_pid=message_pid,
             message="El servidor proceso la solicitud",
             error="",
-            process_status=2,
+            process_status=1,
         )
         ack.send_data(client)
 
         self.destination = dstination
+        self.pid = message_pid
 
         payload = json.dumps(self.to_dict()).encode("utf-8")
         message_size = len(payload)

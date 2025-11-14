@@ -18,7 +18,7 @@ type Queue struct {
 	Type                     string
 	Clients                  *client.ClientSliceGroups
 	EventsClientSubscripcion *client.ClientSliceGroupMapEventSubscription
-	mutex                    sync.Mutex
+	Mutex                    sync.Mutex
 	Receive                  chan *providers.Process
 
 	priorityBuckets map[int][]*providers.Process

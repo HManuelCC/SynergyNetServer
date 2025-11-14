@@ -70,13 +70,27 @@ func HandleEventDispatcher(result comunication.Event, ClientSocket *client.Clien
 		ClientSocket: nil,
 		ClientPos:    0,
 		Type:         "EVENT",
+		ClientPID:    result.PID,
 	}
 
 	balancer.BalancerQueue.AddTask(process)
 }
 
 func HandleStateDispatcher(result comunication.State, clientSocket *client.ClientSocket, clients *client.ClientSliceGroups) {
+	var processEvent = balancer.BalancerQueue.GetTaskByPID(result.PID)
+	if processEvent == nil {
+		return
+	}
+	var clientPid = 0
+	balancer.BalancerQueue.Mutex.Lock()
+	clientPid = processEvent.ClientPID
+	processEvent.Updated = time.Now()
+	balancer.BalancerQueue.RemoveTaskByPID(result.PID)
+	balancer.BalancerQueue.Mutex.Unlock()
+
+	result.PID = clientPid
 	result.Origen = clientSocket.Info.ClientName
+
 	var process providers.Process = providers.Process{
 		PID:          0,
 		TTL:          5,
