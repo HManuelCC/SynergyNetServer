@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	createEvents()
+	//createEvents()
 
 	testConn := SynergyNetClient.NewClient("localhost", "443", "test_go", nil, false)
 
@@ -27,15 +27,22 @@ func main() {
 func createEvents() {
 	SynergyNetClient.EventSlice.AddEvent("login", func(event SynergyNetClient.Event, conn *SynergyNetClient.Client, messagePid int, destination string) {
 
-		var state SynergyNetClient.State = SynergyNetClient.State{
-			Status:  true,
-			Message: "Hola go",
-			Error:   "",
-			Data:    nil,
+		var eventData SynergyNetClient.Event = SynergyNetClient.Event{
+			Event: "registro",
+			Data:  nil,
 		}
 
-		fmt.Println("Mensaje recibido: ", event.Origen)
-		state.SendData(conn, messagePid, destination)
+		err := conn.Send(eventData, nil, func(response SynergyNetClient.State) {
+
+			fmt.Println("Registro exitoso:", response.Message)
+
+			response.SendData(conn, messagePid, destination)
+
+		})
+
+		if err != nil {
+			fmt.Println("Error sending registro event:", err)
+		}
 
 	})
 
@@ -46,10 +53,9 @@ func createEvents() {
 			Message: "Hola amigo",
 			Error:   "",
 			Data:    nil,
-			PID:     event.PID,
 		}
 
-		fmt.Println("Mensaje recibido: ", event.Origen, "Evento: ", event.Event)
+		fmt.Println("Mensaje recibido de registro: ", event.Origen, "Evento: ", event.Event)
 		state.SendData(conn, messagePid, destination)
 
 	})
@@ -68,17 +74,15 @@ func createRoutes(mux *http.ServeMux, testConn *SynergyNetClient.Client) {
 		fmt.Print("Enviando evento de login: ", event.Origen)
 
 		err := testConn.Send(event, nil, func(response SynergyNetClient.State) {
-
-			fmt.Println(response.ToString())
+			fmt.Println(response.Message)
 			// Manejar la respuesta del evento aqu
 			fmt.Println("Respuesta del evento de login:", username)
 			json.NewEncoder(w).Encode(username)
 		})
 
 		if err != nil {
-			fmt.Println("Error sending login event:", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
+			fmt.Println("Error en respuesta:", err)
 		}
+
 	})
 }

@@ -271,7 +271,6 @@ func (client *ClientSocket) ReadData(connected chan bool) {
 		// Leer encabezado (1 byte tipo + 4 bytes tamaño)
 		header := make([]byte, 5)
 		_, err := io.ReadFull(client.Conn, header)
-		fmt.Println("Header recibido:", header)
 		if err != nil {
 			if err == io.EOF {
 				log.Println("El cliente cerró la conexión")

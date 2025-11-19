@@ -189,6 +189,7 @@ export class Client {
                 this.processes.push({ pid, resolve: (s) => { cb?.(s); resolve(s); }, reject, timeout: to });
             });
         }
+        return Promise.resolve({ status: true, message: 'Evento enviado sin espera de respuesta', error: '', data: null, pid });
     }
     async sendClientInfo(messagePid) {
         try {

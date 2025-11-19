@@ -13,6 +13,6 @@ export declare class EventSlice {
     addEvent(event: string, handle: (event: Event, client: Client, messagePid: number, destination: string) => void): void;
     removeEvent(event: string): void;
     len(): number;
-    dispatch(e: Event, client: Client, messagePid: number, destination: string): void;
+    dispatch(e: Event, client: Client, messagePid: number, destination: string): Promise<void>;
 }
 export declare const GlobalEventSlice: EventSlice;

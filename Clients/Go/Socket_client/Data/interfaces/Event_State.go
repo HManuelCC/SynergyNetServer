@@ -64,7 +64,6 @@ func (m MessageState) ToString() string {
 }
 
 func (object Event) SendData(client *Client, timeout *time.Duration, response ...ResponseCallback) error {
-
 	var typeBuf byte = 1
 	var pid int = generatePID()
 	object.PID = pid
@@ -112,6 +111,7 @@ func (object Event) SendData(client *Client, timeout *time.Duration, response ..
 			defaultTimeout := 15 * time.Second
 			timeout = &defaultTimeout
 		}
+
 		select {
 		case data := <-process.Data:
 			callback := response[0]
@@ -243,7 +243,6 @@ func ReadData(conn *Client, clientName string, eventSlice *EventSlice, serverSta
 				continue // 🔴 seguimos con el loop, no cerramos
 			}
 
-			// Errores permanentes: notificamos y terminamos
 			log.Println("Error al leer encabezado, cerrando conexión:", err)
 			serverStatus <- false
 			conn.Close()
@@ -282,7 +281,7 @@ func ReadData(conn *Client, clientName string, eventSlice *EventSlice, serverSta
 					// lo mandamos al manejador de eventos
 					var state *MessageState = &MessageState{Message: "El servidor proceso la solicitud", Status: true, ServerPID: messagePid, Error: "", ProcessStatus: 1}
 					state.SendData(conn)
-					HandleEvents(event, conn, clientName, eventSlice, int(latency), messagePid)
+					go HandleEvents(event, conn, clientName, eventSlice, int(latency), messagePid)
 				case 2: // Estado
 					var activeProcess bool = false
 					var state State

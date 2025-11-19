@@ -28,25 +28,29 @@ def create_events() -> None:
     EventSlice.add_event("registro", registro_event_handler)
 
 
-def login_event_handler(event: Event, conn, message_pid: int,destination: str) -> None:
+def login_event_handler(event: Event, conn:SynergyClient, message_pid: int,destination: str) -> None:
     print(destination)
-    state = State(
-        status=True,
-        message="Hola go",
-        error="",
-        data=None,
-    )
-    logger.info("Mensaje recibido: %s", event.origen)
-    state.send_data(conn, message_pid,destination)
+    event = Event(
+        event="registro",data=None)
+    def callback(response: State) -> None:
+        print("Contesto del servidor recibido: "+response.message)
+        response.send_data(conn, message_pid,destination)
+        
+    try:
+        conn.send(event, callback=callback)
+    except TimeoutError:
+        sys.exit(1)
+    except RuntimeError as exc:
+        logger.error("Error sending login event: %s", exc)
+        sys.exit(1)
 
 
-def registro_event_handler(event: Event, conn, message_pid: int,destination: str) -> None:
+def registro_event_handler(event: Event, conn:SynergyClient, message_pid: int,destination: str) -> None:
     state = State(
         status=True,
         message="Hola amigo",
         error="",
         data=None,
-        pid=event.pid,
     )
     logger.info("Mensaje recibido: %s Evento: %s", event.origen, event.event)
     state.send_data(conn, message_pid,destination)
@@ -65,7 +69,6 @@ def make_handler(client: SynergyClient) -> Callable[..., BaseHTTPRequestHandler]
 
             event = Event(
                 event="login",
-                destination="test_go",
                 data={"username": username, "password": "test_password"},
             )
 

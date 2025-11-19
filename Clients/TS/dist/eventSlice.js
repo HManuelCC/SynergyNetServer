@@ -13,7 +13,7 @@ export class EventSlice {
         this.subscribed.events = this.subscribed.events.filter(e => e !== event);
     }
     len() { return this.events.length; }
-    dispatch(e, client, messagePid, destination) {
+    async dispatch(e, client, messagePid, destination) {
         if (e.event === 'connect') {
             client.sendClientInfo(messagePid);
             return;

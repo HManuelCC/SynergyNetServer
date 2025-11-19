@@ -5,22 +5,14 @@ import http from 'http';
 GlobalEventSlice.addEvent('login', (event, client, messagePid, destination) => {
     const username = event.data.username;
     const password = event.data.password;
-    if (username === 'admin' && password === 'password123') {
-        client.sendState({
-            status: true,
-            message: 'Login successful',
-            error: '',
-            data: { welcomeMessage: `Welcome back, ${username}!` },
-        }, messagePid, destination);
-    }
-    else {
-        client.sendState({
-            status: true,
-            message: 'Login failed',
-            error: 'Invalid credentials',
-            data: null,
-        }, messagePid, destination);
-    }
+    var evt = {
+        event: 'registro', data: null, destination: destination
+    };
+    client.send(evt, 5000).then(response => {
+        client.sendState(response, messagePid, destination);
+    }).catch(err => {
+        console.error('Error enviando evento de login:', err);
+    });
 });
 GlobalEventSlice.addEvent('registro', (event, client, messagePid, destination) => {
     client.sendState({

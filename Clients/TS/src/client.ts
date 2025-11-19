@@ -184,7 +184,7 @@ export class Client {
     this.socket.write(packet);
   }
 
-  async send(event: Event, timeoutMs?: number, cb?: ResponseCallback): Promise<State | void> {
+  async send(event: Event, timeoutMs?: number, cb?: ResponseCallback): Promise<State> {
     if (!this.socket) throw new Error('no hay conexión activa');
     const pid = randomInt(1_000_000);
     event.pid = pid;
@@ -202,6 +202,7 @@ export class Client {
         this.processes.push({ pid, resolve: (s) => { cb?.(s); resolve(s); }, reject, timeout: to });
       });
     }
+    return Promise.resolve({ status: true, message: 'Evento enviado sin espera de respuesta', error: '', data: null, pid });
   }
 
   async sendClientInfo(messagePid: number) {

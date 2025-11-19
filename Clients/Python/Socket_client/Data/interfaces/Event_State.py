@@ -89,8 +89,8 @@ def generate_pid() -> int:
 @dataclass
 class Event:
     event: str
-    destination: str
     data: Any
+    destination: str = ""
     origen: str = ""
     pid: int = 0
 
@@ -184,7 +184,7 @@ class State:
     def from_dict(cls, payload: Dict[str, Any]) -> "State":
         return cls(
             status=bool(payload.get("status", False)),
-            message=str(payload.get("state", "")),
+            message=str(payload.get("message", "")),
             error=str(payload.get("error", "")),
             data=payload.get("data"),
             destination=str(payload.get("destination", "")),
@@ -336,8 +336,12 @@ def read_data(
 
             try:
                 from .Handlers import handle_events  # Local import to avoid circular dependency
-
-                handle_events(event, conn, client_name, event_slice, int(latency), message_pid)
+                
+                threading.Thread(
+                    target=handle_events,
+                    args=(event, conn, client_name, event_slice, int(latency), message_pid)
+                ).start()
+                
             except Exception as exc:  # noqa: BLE001
                 logger.exception("Error al procesar el evento %s: %s", event.event, exc)
         elif msg_type == 2:  # Estado

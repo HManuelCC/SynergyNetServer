@@ -22,7 +22,7 @@ export declare class Client {
     private processBuffer;
     private sendMessageState;
     sendState(state: State, messagePid: number, destination: string): void;
-    send(event: Event, timeoutMs?: number, cb?: ResponseCallback): Promise<State | void>;
+    send(event: Event, timeoutMs?: number, cb?: ResponseCallback): Promise<State>;
     sendClientInfo(messagePid: number): Promise<void>;
     private getSystemStats;
 }
