@@ -1,0 +1,28 @@
+[project]
+name = "synergynet-py"
+version = "0.1.0"
+description = "Cliente Python compatible con SynergyNet (similar al cliente en Go)"
+authors = [
+    { name = "Tu Nombre", email = "tu.email@example.com" }
+]
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "psutil>=5.9,<6"
+]
+
+[project.urls]
+Home = "https://github.com/HManuelCC/SynergyNetServer/tree/main/Clients/Python"
+Issues = "https://github.com/HManuelCC/SynergyNetServer/issues"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+# 👇 ESTO ES LO QUE FALTABA
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

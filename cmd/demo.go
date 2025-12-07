@@ -33,5 +33,5 @@ func main() {
 		}
 	}
 
-	SynergyNetServer.NewSocketServer(port)
+	SynergyNetServer.NewSocketServer(port, true)
 }

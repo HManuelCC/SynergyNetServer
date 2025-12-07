@@ -1,0 +1,14 @@
+pyproject.toml
+src/synergynet_py/Client.py
+src/synergynet_py/__init__.py
+src/synergynet_py.egg-info/PKG-INFO
+src/synergynet_py.egg-info/SOURCES.txt
+src/synergynet_py.egg-info/dependency_links.txt
+src/synergynet_py.egg-info/requires.txt
+src/synergynet_py.egg-info/top_level.txt
+src/synergynet_py/Data/__init__.py
+src/synergynet_py/Data/interfaces/ClientInformation.py
+src/synergynet_py/Data/interfaces/EventSlice.py
+src/synergynet_py/Data/interfaces/Event_State.py
+src/synergynet_py/Data/interfaces/Handlers.py
+src/synergynet_py/Data/interfaces/__init__.py

@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: synergynet-py
+Version: 0.1.0
+Summary: Cliente Python compatible con SynergyNet (similar al cliente en Go)
+Author-email: Tu Nombre <tu.email@example.com>
+Project-URL: Home, https://github.com/HManuelCC/SynergyNetServer/tree/main/Clients/Python
+Project-URL: Issues, https://github.com/HManuelCC/SynergyNetServer/issues
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: psutil<6,>=5.9

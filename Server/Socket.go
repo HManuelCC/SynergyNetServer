@@ -1,6 +1,7 @@
 package SynergyNetServer
 
 import (
+	"crypto/tls"
 	"log"
 	"net"
 	"strconv"
@@ -15,7 +16,7 @@ import (
 var Clients *client.ClientSliceGroups = &client.ClientSliceGroups{}
 var EventSubscriptions *client.ClientSliceGroupMapEventSubscription = &client.ClientSliceGroupMapEventSubscription{}
 
-func NewSocketServer(port int) {
+func NewSocketServer(port int, useTls bool) {
 
 	// Inicializar el gestor de colas con TTL automático
 	balancer.BalancerQueue.Start(Clients, 1000, 5, EventSubscriptions)
@@ -26,23 +27,29 @@ func NewSocketServer(port int) {
 
 	log.Println("SynergyNet Server iniciado con colas optimizadas...")
 
-	startServer(port)
+	startServer(port, useTls)
 
 	log.Println("Servidor cerrado correctamente")
 }
 
-func startServer(port int) {
+func startServer(port int, useTls bool) {
 	var conexionesActuales int = 0
+	var server net.Listener = nil
+	var err error = nil
 
-	/*cert, err := tls.LoadX509KeyPair("../Certs/server.crt", "../Certs/private_server.key")
-	if err != nil {
-		log.Fatal("Error cargando certificado:", err)
+	if useTls {
+		var cert tls.Certificate
+		cert, err = tls.LoadX509KeyPair("../Certs/server.crt", "../Certs/private_server.key")
+		if err != nil {
+			log.Fatal("Error cargando certificado:", err)
+		}
+
+		// Configuración TLS
+		config := &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13}
+		server, err = tls.Listen("tcp", ":"+strconv.Itoa(port), config)
+	} else {
+		server, err = net.Listen("tcp", ":"+strconv.Itoa(port))
 	}
-
-	// Configuración TLS
-	config := &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13}*/
-
-	server, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 	if err != nil {
 		log.Println("Error al crear el servidor: ", err)
 		return

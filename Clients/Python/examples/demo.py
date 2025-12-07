@@ -15,8 +15,8 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from Socket_client import Client as SynergyClient
-from Socket_client import EventSlice
+
+from synergynet_py import EventSlice
 from Socket_client.Data.interfaces.Event_State import Event, State
 
 logging.basicConfig(level=logging.INFO)
